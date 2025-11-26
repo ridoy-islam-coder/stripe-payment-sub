@@ -1,6 +1,6 @@
-import {  Request, Response } from "express";
+import e, {  Request, Response } from "express";
 import { SubscriptionDetailModel, subscriptionplanModel } from "./subscriptions.model";
-import { createCustomer, saveCardDetailes } from "../../../helpers/Subscription";
+import { createCustomer, monthly_trial_subscription_start, saveCardDetailes } from "../../../helpers/Subscription";
 
 
 
@@ -12,6 +12,21 @@ declare global {
     }
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 export  const creatsubscriptionplan = async (req:Request,res:Response) => {
@@ -92,29 +107,77 @@ export const createsubscription = async (req:Request,res:Response) => {
   try {
      
  const userrData = req.user;
-    const {id,card}=req.body;
+    const {plan_id,card_id}=req.body;
    
+
+   const subscriptionplan = await subscriptionplanModel.findOne({_id:plan_id});
+    if(!subscriptionplan){
+      return res.status(404).json({success:false, message: "Plan not found"});
+    }
+
+
+
+
+
+
+
    if(!userrData){
       return res.status(401).json({success:false, message: "User not authenticated"});
    }
 
-   const customer = await createCustomer(userrData.name,userrData.email,id);
+
+
+   // create customer
+   const customer = await createCustomer(userrData.name,userrData.email,card_id.id);
 
    if(!customer.success){
       return res.status(400).json({success:false, message: customer.error});
     }
      
 
-    var Customer=customer.data as any;
-    const cardDetails=await saveCardDetailes(card,userrData.id,Customer.id);
+    const Customer=customer.data as any;
+    const customer_id = Customer.id as string;
+
+
+
+    // save card detailes
+    const cardDetails=await saveCardDetailes(plan_id.card,userrData.id,customer_id);
 
    if(!cardDetails.success){
       return res.status(400).json({success:false, message: cardDetails.error});
     }
      
-const cardData=cardDetails.data as any;
+   const cardData=cardDetails.data as any;
 
-   return res.status(200).json({success:true, message: "card saved successfully",data:cardData });
+
+
+//  subscription wurking start
+const user_id = userrData.id;
+
+var subscriptiondata=null;
+
+if(subscriptionplan.type == 0){
+      // monthly subscription with trial                     subscriptionplan
+     await monthly_trial_subscription_start(customer_id, user_id, subscriptionplan._id.toString());
+}
+else if(subscriptionplan.type == 1){
+      // monthly subscription without trial
+}
+else if(subscriptionplan.type == 2){
+      // yearly subscription with trial
+}
+
+
+
+
+
+
+
+
+
+
+
+   return res.status(200).json({success:true, message: "subscription created successfully",data:subscriptiondata });
 
     } catch (error) {
       console.log(error);

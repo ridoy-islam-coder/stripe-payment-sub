@@ -35,7 +35,7 @@ export interface ISubscription extends Document {
   stripe_Subscription_id: string
   stripe_Subscription_schedule_id: string
   stripe_customer_id: string
-  subscription_plan_price_id: mongoose.Types.ObjectId
+  subscription_plan_price_id: string
   plan_amount: number
   plan_amount_currency: string
  plan_interval: string
@@ -87,8 +87,8 @@ const subscriptionSchema = new Schema<ISubscription>(
       required: true,
     },
      subscription_plan_price_id: {
-      type:  Schema.Types.ObjectId,
-      ref: "subscriptionplan",
+       type: String,
+      required: true,
     },
 
      plan_amount: {
